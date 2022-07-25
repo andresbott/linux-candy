@@ -21,7 +21,7 @@ ID=$(jq -r '.id' <<< "$response")
 
 echo "Uploading asset"
 ## upload asset to the release
-FILENAME=$(basename 'elementary-breeze_'"$v"'_all.deb')
+FILENAME=$(basename 'linux-candy_'"$v"'_all.deb')
 curl -s \
   -H "Authorization: token $TOKEN" \
   -H "Content-Type: $(file -b --mime-type "$FILENAME")" \
