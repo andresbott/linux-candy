@@ -12,7 +12,7 @@ response=$(curl -s \
   -X POST \
   -H "Accept: application/vnd.github+json" \
   -H "Authorization: token $TOKEN" \
-  "https://api.github.com/repos/andresbott/elementary-breeze/releases" \
+  "https://api.github.com/repos/andresbott/linux-candy/releases" \
   -d "$payload")
 
 # the the release id from the response
@@ -26,4 +26,4 @@ curl -s \
   -H "Authorization: token $TOKEN" \
   -H "Content-Type: $(file -b --mime-type "$FILENAME")" \
   --data-binary @"$FILENAME" \
-  "https://uploads.github.com/repos/andresbott/elementary-breeze/releases/$ID/assets?name=$FILENAME"
+  "https://uploads.github.com/repos/andresbott/linux-candy/releases/$ID/assets?name=$FILENAME"
