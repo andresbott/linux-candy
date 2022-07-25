@@ -11,7 +11,7 @@ build: ## build the debian package
 	@nfpm package -f nfpm.yaml -p deb
 
 publish: build ## publish the release to github
-	@scripts/publish.sh
+	@zarf/publish.sh
 
 clean: ## clean
 	@rm *.deb
