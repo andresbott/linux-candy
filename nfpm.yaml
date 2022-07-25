@@ -1,0 +1,55 @@
+name: "linux-candy"
+arch: "all"
+platform: "linux"
+version: "0.1.0"
+section: "default"
+priority: "optional"
+#replaces:
+#provides:
+depends:
+- imagemagick
+- alsa-utils
+#recommends:
+#suggests:
+#conflicts:
+
+maintainer: "Andres Bott <contact@andresbott.com>"
+description: |
+  Mixed up linux scripts: snapscreen
+
+#vendor: "FooBarCorp"
+#homepage: "http://example.com"
+license: "Mixed"
+#changelog: "changelog.yaml"
+contents:
+# snapscreen
+- src: ./scripts/snapscreen/shutter.wav
+  dst: /usr/local/share/snapscreen/shutter.wav
+
+- src: ./scripts/snapscreen/snapscreen
+  dst: /usr/local/bin/snapscreen
+
+- src: ./scripts/snapscreen/snapscreen.conf
+  dst: /etc/snapscreen.conf
+
+# public ip
+- src: ./scripts/network/public-ip.sh
+  dst: /usr/local/bin/public-ip
+
+#- src: ./bar
+#  dst: /usr/local/bin/bar
+#- src: ./foobar.conf
+#  dst: /etc/foobar.conf
+#  type: config
+#- src: /usr/local/bin/foo
+#  dst: /sbin/foo
+#  type: symlink
+overrides:
+#  rpm:
+#    scripts:
+#      preinstall: ./scripts/preinstall.sh
+#      postremove: ./scripts/postremove.sh
+  deb:
+    scripts:
+      postinstall: ./zarf/postinstall.sh
+#      preremove: ./scripts/preremove.sh
