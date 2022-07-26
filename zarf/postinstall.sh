@@ -10,7 +10,11 @@ chmod 755 /usr/local/bin/snapscreen
 
 chown root:root /etc/snapscreen.conf
 chmod 644 /etc/snapscreen.conf
-# public ip
 
+# public ip
 chown root:root /usr/local/bin/public-ip
 chmod 755 /usr/local/bin/public-ip
+
+# topsize
+chown root:root /usr/local/bin/topsize
+chmod 755 /usr/local/bin/topsize

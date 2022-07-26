@@ -1,7 +1,7 @@
 name: "linux-candy"
 arch: "all"
 platform: "linux"
-version: "0.1.0"
+version: "0.1.1"
 section: "default"
 priority: "optional"
 #replaces:
@@ -35,6 +35,10 @@ contents:
 # public ip
 - src: ./scripts/network/public-ip.sh
   dst: /usr/local/bin/public-ip
+
+  # public ip
+- src: ./scripts/file/topsize.sh
+  dst: /usr/local/bin/topsize
 
 #- src: ./bar
 #  dst: /usr/local/bin/bar
