@@ -142,10 +142,6 @@ esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-#if [[ -n $1 ]]; then
-#    echo "Last line of file specified as non-opt/last argument:"
-#   #tail -1 "$1"
-#fi
 
 if [ "$help" = "YES" ]; then
     printHelp
@@ -165,25 +161,15 @@ elif [ "$ScriptName" = "snap.selection" ]; then
 fi
 
 if [ "$snap_type" = "w" ]; then
-    PARAMS="$PARAMS"" -screen"
+    PARAMS="$PARAMS -frame"
+    import -frame "${OUTPUT}/${new_filename}.jpg"
 elif [ "$snap_type" = "s" ]; then
-    PARAMS="$PARAMS"
-else
-    PARAMS="$PARAMS"
+    import "${OUTPUT}/${new_filename}.jpg"
 fi
-
-if [ "$ADDWINDOW" = "true" ]; then
-    PARAMS="$PARAMS"" -frame "
-fi
-
-PARAMS="$PARAMS"" $ADITIONALPARAMS"
 
 PARAMS="$(echo -e "${PARAMS}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
 
-r=$(import "${PARAMS}" "$OUTPUT/$new_filename.png")
-
 FileLocation="/usr/local/share/snapscreen/shutter.wav"
-
 if [ "$PLAYSOUND" = "true" ]; then
     command -v aplay >/dev/null 2>&1 || { echo >&2 "To play sounds the package aplay is needed, provided by alsa-utils Aborting."; exit 1; }
     aplay "${FileLocation}"
