@@ -1,7 +1,7 @@
 name: "linux-candy"
 arch: "all"
 platform: "linux"
-version: "0.1.2"
+version: "0.1.3"
 section: "default"
 priority: "optional"
 #replaces:
@@ -17,7 +17,7 @@ maintainer: "Andres Bott <contact@andresbott.com>"
 description: |
   Mixed up linux scripts: snapscreen
 
-#vendor: "FooBarCorp"
+#vendor: "FooBarCorp
 #homepage: "http://example.com"
 license: "Mixed"
 #changelog: "changelog.yaml"
@@ -31,6 +31,9 @@ contents:
 
 - src: ./scripts/snapscreen/snapscreen.conf
   dst: /etc/snapscreen.conf
+
+- src: ./zarf/snapscreen.khotkeys
+  dst: /usr/share/khotkeys/snapscreen.khotkeys
 
 # public ip
 - src: ./scripts/network/public-ip.sh
