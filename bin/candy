@@ -1,0 +1,288 @@
+#!/bin/bash
+#
+# candy - a small collection of mixed up linux candy scripts, unified behind
+# subcommands. Run without arguments to list the available commands.
+
+# Location of installed shared assets (shutter sound, etc.). Overridable for
+# running straight from a checkout, e.g. CANDY_SHARE=./share/snapscreen candy ...
+CANDY_SHARE="${CANDY_SHARE:-/usr/local/share/snapscreen}"
+
+# https://stackoverflow.com/questions/3963716/how-to-manually-expand-a-special-variable-ex-tilde-in-bash/29310477#29310477
+expandPath() {
+  local path
+  local -a pathElements resultPathElements
+  IFS=':' read -r -a pathElements <<<"$1"
+  : "${pathElements[@]}"
+  for path in "${pathElements[@]}"; do
+    : "$path"
+    case $path in
+      "~+"/*)
+        path=$PWD/${path#"~+/"}
+        ;;
+      "~-"/*)
+        path=$OLDPWD/${path#"~-/"}
+        ;;
+      "~"/*)
+        path=$HOME/${path#"~/"}
+        ;;
+      "~"*)
+        username=${path%%/*}
+        username=${username#"~"}
+        IFS=: read _ _ _ _ _ homedir _ < <(getent passwd "$username")
+        if [[ $path = */* ]]; then
+          path=${homedir}/${path#*/}
+        else
+          path=$homedir
+        fi
+        ;;
+    esac
+    resultPathElements+=( "$path" )
+  done
+  local result
+  printf -v result '%s:' "${resultPathElements[@]}"
+  printf '%s\n' "${result%:}"
+}
+
+#==========================================================================================
+##@ Screenshots
+#==========================================================================================
+cmd_snapscreen() { ## screenshot via KDE Spectacle (Wayland): candy snapscreen -t s|w  (s=selection, w=window)
+  # Drives KDE's Spectacle, which talks to KWin natively (Wayland-compatible),
+  # instead of ImageMagick's X11-only `import`.
+  #
+  # Config is sourced in order (later overrides earlier):
+  #   /etc/snapscreen.conf then ~/.config/snapscreen.conf
+  # Recognised variables:
+  #   OUTPUT           output directory                 (default: ~/Screenshots)
+  #   FILENAME         filename prefix                  (default: Snapshot)
+  #   EXT              image extension / format         (default: jpg)
+  #   WINDOWMODE       active | undercursor             (default: active)
+  #   PLAYSOUND        true | false  shutter sound      (default: false)
+  #   CLIPBOARD        true | false  copy image to clip (default: false)
+  #   ADITIONALPARAMS  extra args passed to spectacle   (default: empty)
+
+  # defaults
+  local OUTPUT="~/Screenshots"
+  local FILENAME="Snapshot"
+  local EXT="jpg"
+  local WINDOWMODE="active"
+  local PLAYSOUND="false"
+  local CLIPBOARD="false"
+  local ADITIONALPARAMS=""
+
+  # load config
+  [ -f /etc/snapscreen.conf ] && . /etc/snapscreen.conf
+  local user_config
+  user_config="$(expandPath "~/.config/snapscreen.conf")"
+  [ -f "$user_config" ] && . "$user_config"
+
+  # parse args
+  local TYPE=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -t|--type) TYPE="${2:-}"; shift 2 ;;
+      -h|--help)
+        cat <<'EOF'
+Usage:
+  candy snapscreen -t <type>
+
+  <type> = capture type:
+    s : (Selection) drag to select a rectangular area of the screen
+    w : (Window)    capture a window (see WINDOWMODE below)
+
+  Config: /etc/snapscreen.conf and ~/.config/snapscreen.conf
+    OUTPUT FILENAME EXT WINDOWMODE PLAYSOUND CLIPBOARD ADITIONALPARAMS
+EOF
+        return 0 ;;
+      *) TYPE="${TYPE:-$1}"; shift ;;
+    esac
+  done
+
+  # map type -> spectacle capture mode
+  local mode
+  case "$TYPE" in
+    s) mode="-r" ;;                                    # rectangular region
+    w) case "$WINDOWMODE" in
+         undercursor) mode="-u" ;;                     # window under the cursor
+         *)           mode="-a" ;;                     # active (focused) window
+       esac ;;
+    *) echo >&2 "snapscreen: unknown or missing capture type: '${TYPE}'"; return 1 ;;
+  esac
+
+  # build output path
+  OUTPUT="$(expandPath "$OUTPUT")"
+  mkdir -p "$OUTPUT"
+  local stamp outfile
+  stamp="$(date '+%Y-%m-%d')_at_$(date '+%H.%M.%S')"
+  outfile="${OUTPUT}/${FILENAME}_${stamp}.${EXT}"
+
+  # dependency check
+  if ! command -v spectacle >/dev/null 2>&1; then
+    echo >&2 "snapscreen: spectacle is required but not installed."
+    echo >&2 "            install it with:  sudo apt install kde-spectacle"
+    return 1
+  fi
+
+  # capture: -b background (no main window), -n no notification, -o save to file
+  # shellcheck disable=SC2086
+  spectacle -b -n $mode -o "$outfile" $ADITIONALPARAMS
+
+  # spectacle -b can return before the file is flushed to disk; wait briefly.
+  local _
+  for _ in {1..10}; do [ -s "$outfile" ] && break; sleep 0.2; done
+  if [ ! -s "$outfile" ]; then
+    echo >&2 "snapscreen: no screenshot produced (cancelled?)"
+    return 1
+  fi
+
+  # optional: copy image to clipboard
+  if [ "$CLIPBOARD" = "true" ] && command -v wl-copy >/dev/null 2>&1; then
+    wl-copy < "$outfile"
+  fi
+
+  # optional: shutter sound
+  if [ "$PLAYSOUND" = "true" ]; then
+    local sound="${CANDY_SHARE}/shutter.wav"
+    if [ -f "$sound" ] && command -v aplay >/dev/null 2>&1; then
+      aplay -q "$sound" >/dev/null 2>&1 &
+    fi
+  fi
+
+  echo "snapscreen: saved $outfile"
+}
+
+#==========================================================================================
+##@ Network
+#==========================================================================================
+cmd_public-ip() { ## print this machine's public IP address
+  wget http://ipinfo.io/ip -qO -
+  echo ""
+}
+
+#==========================================================================================
+##@ Files
+#==========================================================================================
+cmd_topsize() { ## list the biggest directories (or files with -f) under a path
+  local LINES=15 DIR="./" DEEP=1 FILE=false
+
+  local -a args=("$@")
+  local i e number re='^[0-9]+$'
+  for ((i=0; i<${#args[@]}; i++)); do
+    case "${args[i]}" in
+      -h|--help)
+        echo "parameters:"
+        echo " -n <INT> amount of lines to print, default 15"
+        echo " -d <INT> amount of subdirectory levels tested, default 1"
+        echo " -f find the biggest file instead of directory, default false"
+        echo " -h print this help"
+        return 0
+        ;;
+      -n)
+        e=$((i+2)); number=${!e}
+        [[ $number =~ $re ]] && LINES=$number
+        continue
+        ;;
+      -d)
+        e=$((i+2)); number=${!e}
+        [[ $number =~ $re ]] && DEEP=$number
+        continue
+        ;;
+      -f)
+        FILE=true
+        ;;
+    esac
+
+    local parameter="${args[i]}"
+    if [ ! "${parameter:0:1}" == "-" ]; then
+      DIR=${args[i]}
+    fi
+  done
+
+  if [ "$FILE" = true ]; then
+    find "$DIR" -maxdepth "$DEEP" -type f -printf '%s  %p\n' | numfmt --field=1 --to=iec --suffix=B --padding=8 | sort -r -h | head -n "$LINES"
+  else
+    du -h --max-depth "$DEEP" "$DIR" | sort -h -r | head -n "$LINES"
+  fi
+}
+
+cmd_same-size() { ## find files sharing the same size (largest first), grouped: candy same-size [dir]
+  local DIR="${1:-.}"
+  find "$DIR" -type f -printf '%s\t%p\0' |
+    sort -z -n -r -k1,1 |
+    awk -v RS='\0' -F '\t' '
+    function human(x,   u, i) {
+      split("B KiB MiB GiB TiB PiB", u, " ")
+      i = 1
+      while (x >= 1024 && i < 6) { x /= 1024; i++ }
+      if (i == 1) return sprintf("%d %s", x, u[i])
+      return sprintf("%.1f %s", x, u[i])
+    }
+    {
+      size = $1
+      file = $2
+
+      if (size == prev_size) {
+        if (!printed) {
+          print ""
+          print "Size: " human(size)
+          print prev_file
+          printed = 1
+        }
+        print file
+      } else {
+        printed = 0
+      }
+
+      prev_size = size
+      prev_file = file
+    }'
+}
+
+cmd_move-videos() { ## move video files from subdirectories into the current directory
+  find . -type f \( -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.avi" -o -iname "*.mov" -o -iname "*.flv" \) -exec mv -n {} ./ \;
+}
+
+cmd_del-empty-dir() { ## delete empty directories recursively under the current directory
+  find . -type d -empty -delete
+}
+
+#==========================================================================================
+#  Help
+#==========================================================================================
+usage() {
+  echo ""
+  echo "Usage:"
+  echo -e "  candy \033[36m<command>\033[0m [args]"
+  awk '
+    /^cmd_[A-Za-z0-9_-]+\(\)[[:space:]]*\{[[:space:]]*##/ {
+      name = $0; sub(/\(\).*/, "", name); sub(/^cmd_/, "", name)
+      desc = $0; sub(/^.*## ?/, "", desc)
+      printf "  \033[36m%-15s\033[0m %s\n", name, desc
+    }
+    /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($0, 5) }
+  ' "$0"
+  echo ""
+}
+
+main() {
+  local sub="${1:-}"
+  if [ -z "$sub" ]; then
+    usage
+    exit 0
+  fi
+  # hidden: list subcommand names, one per line (used by bash completion)
+  if [ "$sub" = "--complete-commands" ]; then
+    declare -F | sed -n 's/^declare -f cmd_//p'
+    exit 0
+  fi
+  shift
+  if declare -F "cmd_$sub" >/dev/null 2>&1; then
+    "cmd_$sub" "$@"
+  else
+    echo "candy: unknown command '$sub'" >&2
+    usage
+    exit 1
+  fi
+}
+
+main "$@"
