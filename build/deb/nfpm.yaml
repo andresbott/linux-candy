@@ -37,8 +37,13 @@ contents:
 - src: ./share/snapscreen/snapscreen.conf
   dst: /etc/snapscreen.conf
 
-- src: ./zarf/snapscreen.khotkeys
-  dst: /usr/share/khotkeys/snapscreen.khotkeys
+# KDE global-shortcut launchers: kglobalaccel reads X-KDE-Shortcuts from these
+# and registers the default shortcuts (users can override in System Settings).
+- src: ./share/applications/com.andresbott.candy.snapscreen-selection.desktop
+  dst: /usr/share/applications/com.andresbott.candy.snapscreen-selection.desktop
+
+- src: ./share/applications/com.andresbott.candy.snapscreen-window.desktop
+  dst: /usr/share/applications/com.andresbott.candy.snapscreen-window.desktop
 
 overrides:
   deb:
