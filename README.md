@@ -12,6 +12,18 @@ candy public-ip          # print the public IP
 candy topsize -n 3       # biggest directories under the current path
 ```
 
+## KDE global shortcuts
+
+The package ships two `NoDisplay` `.desktop` launchers to
+`/usr/share/applications/` that carry `X-KDE-Shortcuts`, so KDE's `kglobalaccel`
+registers default screenshot shortcuts:
+
+- `Meta+Shift+S` → `candy snapscreen -t s` (selection)
+- `Meta+Shift+W` → `candy snapscreen -t w` (window)
+
+These are defaults you can rebind or clear in System Settings → Shortcuts, and
+they take effect on next login (when `kglobalaccel` rescans `.desktop` files).
+
 ## Build
 
 Build the `.deb` package locally into `dist/` (requires [nfpm](https://nfpm.goreleaser.com)):

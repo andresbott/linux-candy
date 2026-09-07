@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Snapscreen (capture selection)
+Comment=Take a screenshot of a selected screen area
+Exec=/usr/local/bin/candy snapscreen -t s
+Icon=camera-photo
+Terminal=false
+# NoDisplay keeps it out of the app menu; it exists only to carry the shortcut.
+NoDisplay=true
+# Default KDE global shortcut (kglobalaccel reads this); the user can override it.
+X-KDE-Shortcuts=Meta+Shift+S
