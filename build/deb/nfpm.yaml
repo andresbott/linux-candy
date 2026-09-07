@@ -1,0 +1,46 @@
+name: "linux-candy"
+arch: "all"
+platform: "linux"
+# Version comes from the environment (git tag in CI, `git describe` locally).
+# nfpm's default semver schema strips a leading "v", so a tag like v0.1.4
+# yields a package version of 0.1.4.
+version: "${VERSION}"
+section: "default"
+priority: "optional"
+
+# snapscreen drives KDE Spectacle (Wayland-compatible); the sound/clipboard
+# helpers are optional and only used when PLAYSOUND / CLIPBOARD are enabled.
+depends:
+- kde-spectacle
+recommends:
+- alsa-utils
+- wl-clipboard
+
+maintainer: "Andres Bott <contact@andresbott.com>"
+description: |
+  Mixed up linux scripts: snapscreen
+license: "Mixed"
+
+contents:
+# the unified candy executable
+- src: ./bin/candy
+  dst: /usr/local/bin/candy
+
+# bash completion (autoloaded by bash-completion)
+- src: ./completions/candy.bash
+  dst: /usr/share/bash-completion/completions/candy
+
+# snapscreen assets
+- src: ./share/snapscreen/shutter.wav
+  dst: /usr/local/share/snapscreen/shutter.wav
+
+- src: ./share/snapscreen/snapscreen.conf
+  dst: /etc/snapscreen.conf
+
+- src: ./zarf/snapscreen.khotkeys
+  dst: /usr/share/khotkeys/snapscreen.khotkeys
+
+overrides:
+  deb:
+    scripts:
+      postinstall: ./build/deb/scripts/postinstall.sh

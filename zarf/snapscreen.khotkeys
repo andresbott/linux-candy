@@ -23,7 +23,7 @@ Type=SIMPLE_ACTION_DATA
 ActionsCount=1
 
 [Data_1_1Actions0]
-CommandURL=snapscreen -t s
+CommandURL=candy snapscreen -t s
 Type=COMMAND_URL
 
 [Data_1_1Conditions]
@@ -49,7 +49,7 @@ Type=SIMPLE_ACTION_DATA
 ActionsCount=1
 
 [Data_1_2Actions0]
-CommandURL=snapscreen -t w
+CommandURL=candy snapscreen -t w
 Type=COMMAND_URL
 
 [Data_1_2Conditions]

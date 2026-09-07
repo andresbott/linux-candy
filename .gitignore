@@ -8,3 +8,9 @@
 *.iml
 
 **.deb
+
+# build output
+/dist/
+
+# personal todo list (managed by the "todo" app)
+TODO.md
