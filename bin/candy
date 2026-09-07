@@ -154,9 +154,61 @@ EOF
 #==========================================================================================
 ##@ Network
 #==========================================================================================
-cmd_public-ip() { ## print this machine's public IP address
-  wget http://ipinfo.io/ip -qO -
-  echo ""
+cmd_ip() { ## show the public IP and the addresses of the local network interfaces
+  echo "Public IP:"
+  local pub
+  pub="$(wget -qO- --timeout=5 http://ipinfo.io/ip 2>/dev/null)"
+  if [ -n "$pub" ]; then
+    echo "  $pub"
+  else
+    echo "  (unavailable)"
+  fi
+
+  echo
+  echo "Network interfaces:"
+  if command -v ip >/dev/null 2>&1; then
+    # -brief gives: "<iface> <state> <addr> [addr ...]"; skip loopback.
+    ip -brief address show | while read -r iface state addrs; do
+      [ "$iface" = "lo" ] && continue
+      printf "  %-12s %-8s %s\n" "$iface" "$state" "${addrs:-—}"
+    done
+  else
+    echo "  (the 'ip' command from iproute2 is not available)"
+  fi
+}
+
+cmd_port() { ## list the processes listening on a given TCP/UDP port: candy port <port>
+  local port="${1:-}"
+  if [ -z "$port" ]; then
+    echo >&2 "usage: candy port <port>"
+    return 1
+  fi
+  if ! command -v ss >/dev/null 2>&1; then
+    echo >&2 "candy port: the 'ss' command (iproute2) is required."
+    return 1
+  fi
+
+  # -t tcp, -u udp, -l listening, -p process, -n numeric, -H no header;
+  # the filter matches the local (source) port.
+  local out
+  out="$(ss -tulpnH "sport = :$port" 2>/dev/null)"
+  if [ -z "$out" ]; then
+    echo "nothing is listening on port $port"
+    return 0
+  fi
+
+  printf "%-5s %-24s %s\n" "PROTO" "LOCAL ADDRESS" "PROCESS"
+  # columns: Netid State Recv-Q Send-Q Local:Port Peer:Port Process
+  echo "$out" | while read -r proto _ _ _ laddr _ proc; do
+    local procfmt
+    if [ -z "$proc" ]; then
+      procfmt="(process hidden — run with sudo)"
+    else
+      # users:(("nginx",pid=1234,fd=6)) -> nginx pid 1234
+      procfmt="$(printf '%s' "$proc" | sed -E 's/users:\(\(//; s/\)\)$//; s/"//g; s/,fd=[0-9]+//g; s/pid=/pid /g; s/\),\(/, /g; s/,/ /g')"
+    fi
+    printf "%-5s %-24s %s\n" "$proto" "$laddr" "$procfmt"
+  done
 }
 
 #==========================================================================================
