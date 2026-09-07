@@ -8,7 +8,8 @@ with no arguments to list the available commands:
 ```
 candy                    # list commands
 candy snapscreen -t s    # screenshot a selection (or -t w for a window)
-candy public-ip          # print the public IP
+candy ip                 # public IP + local interface addresses
+candy port 8080          # processes listening on a port
 candy topsize -n 3       # biggest directories under the current path
 ```
 
