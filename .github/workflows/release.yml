@@ -34,3 +34,15 @@ jobs:
           gh release create "${{ github.ref_name }}" dist/*.deb \
             --title "${{ github.ref_name }}" \
             --generate-notes
+
+      # publish to the APT repo. the .deb was built into dist/ and attached to the
+      # GitHub release above; this action writes packages/linux-candy.json in
+      # candy-tools/debian-repo and pushes it, which triggers that repo's publish.
+      # needs a cross-repo PAT with Contents: read/write on candy-tools/debian-repo,
+      # stored as the DEBIAN_REPO_TOKEN secret.
+      - name: Register with debian-repo
+        uses: candy-tools/debian-repo/.github/actions/register@main
+        with:
+          name: linux-candy           # must match the .deb's Package field
+          dist-dir: dist              # where `make build` wrote the .deb
+          token: ${{ secrets.DEBIAN_REPO_TOKEN }}
